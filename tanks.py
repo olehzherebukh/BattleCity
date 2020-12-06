@@ -1,6 +1,5 @@
 import os
 import pygame
-import time
 import random
 import uuid
 import sys
@@ -43,7 +42,7 @@ class Timer(object):
             if timer["time"] > timer["interval"]:
                 timer["time"] -= timer["interval"]
                 timer["times"] += 1
-                if timer["repeat"] > -1 and timer["times"] == timer["repeat"]:
+                if -1 < timer["repeat"] == timer["times"]:
                     self.timers.remove(timer)
                 try:
                     timer["callback"]()
@@ -147,7 +146,7 @@ class Bonus:
         if self.visible:
             screen.blit(self.image, self.rect.topleft)
 
-    def toggleVisibility(self):
+    def toggle_visibility(self):
         """ Toggle bonus visibility """
         self.visible = not self.visible
 
@@ -255,9 +254,9 @@ class Bullet:
         # tiles but explosion remains 1
         rects = self.level.obstacle_rects
         collisions = self.rect.collidelistall(rects)
-        if collisions != []:
+        if collisions:
             for i in collisions:
-                if self.level.hitTile(rects[i].topleft, self.power, self.owner == self.OWNER_PLAYER):
+                if self.level.hit_tile(rects[i].topleft, self.power, self.owner == self.OWNER_PLAYER):
                     has_collided = True
         if has_collided:
             self.explode()
@@ -274,14 +273,14 @@ class Bullet:
         # check for collisions with players
         for player in players:
             if player.state == player.STATE_ALIVE and self.rect.colliderect(player.rect):
-                if player.bulletImpact(self.owner == self.OWNER_PLAYER, self.damage, self.owner_class):
+                if player.bullet_impact(self.owner == self.OWNER_PLAYER, self.damage, self.owner_class):
                     self.destroy()
                     return
 
         # check for collisions with enemies
         for enemy in enemies:
             if enemy.state == enemy.STATE_ALIVE and self.rect.colliderect(enemy.rect):
-                if enemy.bulletImpact(self.owner == self.OWNER_ENEMY, self.damage, self.owner_class):
+                if enemy.bullet_impact(self.owner == self.OWNER_ENEMY, self.damage, self.owner_class):
                     self.destroy()
                     return
 
@@ -312,7 +311,7 @@ class Label:
 
         self.font = pygame.font.SysFont("Arial", 13)
 
-        if duration != None:
+        if duration is not None:
             gtimer.add(duration, lambda: self.destroy(), 1)
 
     def draw(self):
@@ -332,10 +331,10 @@ class Explosion:
         self.position = [position[0] - 16, position[1] - 16]
         self.active = True
 
-        if interval == None:
+        if interval is None:
             interval = 100
 
-        if images == None:
+        if images is None:
             images = [
                 sprites.subsurface(0, 80 * 2, 32 * 2, 32 * 2),
                 sprites.subsurface(32 * 2, 80 * 2, 32 * 2, 32 * 2),
@@ -401,21 +400,21 @@ class Level:
 
         self.obstacle_rects = []
 
-        level_nr = 1 if level_nr == None else level_nr % 35
+        level_nr = 1 if level_nr is None else level_nr % 35
         if level_nr == 0:
             level_nr = 35
 
-        self.loadLevel(level_nr)
+        self.load_level(level_nr)
 
         # tiles' rects on map, tanks cannot move over
         self.obstacle_rects = []
 
         # update these tiles
-        self.updateObstacleRects()
+        self.update_obstacle_rects()
 
-        gtimer.add(400, lambda: self.toggleWaves())
+        gtimer.add(400, lambda: self.toggle_waves())
 
-    def hitTile(self, pos, power=1, sound=False):
+    def hit_tile(self, pos, power=1, sound=False):
         """
             Hit the tile
             @param pos Tile's x, y in px
@@ -430,26 +429,26 @@ class Level:
                     if play_sounds and sound:
                         sounds["brick"].play()
                     self.mapr.remove(tile)
-                    self.updateObstacleRects()
+                    self.update_obstacle_rects()
                     return True
                 elif tile.type == self.TILE_STEEL:
                     if play_sounds and sound:
                         sounds["steel"].play()
                     if power == 2:
                         self.mapr.remove(tile)
-                        self.updateObstacleRects()
+                        self.update_obstacle_rects()
                     return True
                 else:
                     return False
 
-    def toggleWaves(self):
+    def toggle_waves(self):
         """ Toggle water image """
         if self.tile_water == self.tile_water1:
             self.tile_water = self.tile_water2
         else:
             self.tile_water = self.tile_water1
 
-    def loadLevel(self, level_nr=1):
+    def load_level(self, level_nr=1):
         """ Load specified level
         @return boolean Whether level was loaded
         """
@@ -482,9 +481,6 @@ class Level:
 
         global screen
 
-        if tiles is None:
-            tiles = [TILE_BRICK, TILE_STEEL, TILE_WATER, TILE_GRASS, TILE_FROZE]
-
         for tile in self.mapr:
             if tile.type in tiles:
                 if tile.type == self.TILE_BRICK:
@@ -498,7 +494,7 @@ class Level:
                 elif tile.type == self.TILE_GRASS:
                     screen.blit(self.tile_grass, tile.topleft)
 
-    def updateObstacleRects(self):
+    def update_obstacle_rects(self):
         """ Set self.obstacle_rects to all tiles' rects that players can destroy
         with bullets """
 
@@ -510,7 +506,7 @@ class Level:
             if tile.type in (self.TILE_BRICK, self.TILE_STEEL, self.TILE_WATER):
                 self.obstacle_rects.append(tile)
 
-    def buildFortress(self, tile):
+    def build_fortress(self, tile):
         """ Build walls around castle made from tile """
 
         positions = [
@@ -535,7 +531,7 @@ class Level:
         for pos in positions:
             self.mapr.append(MyRect(pos[0], pos[1], self.TILE_SIZE, self.TILE_SIZE, tile))
 
-        self.updateObstacleRects()
+        self.update_obstacle_rects()
 
 
 class Tank:
@@ -620,19 +616,19 @@ class Tank:
         self.state = self.STATE_SPAWNING
 
         # spawning animation
-        self.timer_uuid_spawn = gtimer.add(100, lambda: self.toggleSpawnImage())
+        self.timer_uuid_spawn = gtimer.add(100, lambda: self.toggle_spawn_image())
 
         # duration of spawning
-        self.timer_uuid_spawn_end = gtimer.add(1000, lambda: self.endSpawning())
+        self.timer_uuid_spawn_end = gtimer.add(1000, lambda: self.end_spawning())
 
-    def endSpawning(self):
+    def end_spawning(self):
         """ End spawning
         Player becomes operational
         """
         self.state = self.STATE_ALIVE
         gtimer.destroy(self.timer_uuid_spawn_end)
 
-    def toggleSpawnImage(self):
+    def toggle_spawn_image(self):
         """ advance to the next spawn image """
         if self.state != self.STATE_SPAWNING:
             gtimer.destroy(self.timer_uuid_spawn)
@@ -642,7 +638,7 @@ class Tank:
             self.spawn_index = 0
         self.spawn_image = self.spawn_images[self.spawn_index]
 
-    def toggleShieldImage(self):
+    def toggle_shield_image(self):
         """ advance to the next shield image """
         if self.state != self.STATE_ALIVE:
             gtimer.destroy(self.timer_uuid_shield)
@@ -672,7 +668,7 @@ class Tank:
             self.explosion = Explosion(self.rect.topleft)
 
             if self.bonus:
-                self.spawnBonus()
+                self.spawn_bonus()
 
     def fire(self, forced=False):
         """ Shoot a bullet
@@ -742,7 +738,7 @@ class Tank:
             if (abs(self.rect.top - new_y) < 5):
                 self.rect.top = new_y
 
-    def turnAround(self):
+    def turn_around(self):
         """ Turn tank into opposite direction """
         if self.direction in (self.DIR_UP, self.DIR_RIGHT):
             self.rotate(self.direction + 2, False)
@@ -760,7 +756,7 @@ class Tank:
         """ Round number to nearest divisible """
         return int(round(num / (base * 1.0)) * base)
 
-    def bulletImpact(self, friendly_fire=False, damage=100, tank=None):
+    def bullet_impact(self, friendly_fire=False, damage=100, tank=None):
         """ Bullet impact
         Return True if bullet should be destroyed on impact. Only enemy friendly-fire
         doesn't trigger bullet explosion
@@ -790,11 +786,11 @@ class Tank:
             return False
         elif self.side == self.SIDE_PLAYER:
             if not self.paralised:
-                self.setParalised(True)
-                self.timer_uuid_paralise = gtimer.add(10000, lambda: self.setParalised(False), 1)
+                self.set_paralised(True)
+                self.timer_uuid_paralise = gtimer.add(10000, lambda: self.set_paralised(False), 1)
             return True
 
-    def setParalised(self, paralised=True):
+    def set_paralised(self, paralised=True):
         """ set tank paralise state
         @param boolean paralised
         @return None
@@ -874,22 +870,22 @@ class Enemy(Tank):
         self.rotate(self.direction, False)
 
         if position == None:
-            self.rect.topleft = self.getFreeSpawningPosition()
+            self.rect.topleft = self.get_free_spawning_position()
             if not self.rect.topleft:
                 self.state = self.STATE_DEAD
                 return
 
         # list of map coords where tank should go next
-        self.path = self.generatePath(self.direction)
+        self.path = self.generate_path(self.direction)
 
         # 1000 is duration between shots
         self.timer_uuid_fire = gtimer.add(1000, lambda: self.fire())
 
         # turn on flashing
         if self.bonus:
-            self.timer_uuid_flash = gtimer.add(200, lambda: self.toggleFlash())
+            self.timer_uuid_flash = gtimer.add(200, lambda: self.toggle_flash())
 
-    def toggleFlash(self):
+    def toggle_flash(self):
         """ Toggle flash state """
         if self.state not in (self.STATE_ALIVE, self.STATE_SPAWNING):
             gtimer.destroy(self.timer_uuid_flash)
@@ -907,7 +903,7 @@ class Enemy(Tank):
             self.image_left = self.image1_left
         self.rotate(self.direction, False)
 
-    def spawnBonus(self):
+    def spawn_bonus(self):
         """ Create new bonus if needed """
 
         global bonuses
@@ -916,10 +912,10 @@ class Enemy(Tank):
             return
         bonus = Bonus(self.level)
         bonuses.append(bonus)
-        gtimer.add(500, lambda: bonus.toggleVisibility())
+        gtimer.add(500, lambda: bonus.toggle_visibility())
         gtimer.add(10000, lambda: bonuses.remove(bonus), 1)
 
-    def getFreeSpawningPosition(self):
+    def get_free_spawning_position(self):
 
         global players, enemies
 
@@ -969,47 +965,47 @@ class Enemy(Tank):
             return
 
         if self.path == []:
-            self.path = self.generatePath(None, True)
+            self.path = self.generate_path(None, True)
 
         new_position = self.path.pop(0)
 
         # move enemy
         if self.direction == self.DIR_UP:
             if new_position[1] < 0:
-                self.path = self.generatePath(self.direction, True)
+                self.path = self.generate_path(self.direction, True)
                 return
         elif self.direction == self.DIR_RIGHT:
             if new_position[0] > (416 - 26):
-                self.path = self.generatePath(self.direction, True)
+                self.path = self.generate_path(self.direction, True)
                 return
         elif self.direction == self.DIR_DOWN:
             if new_position[1] > (416 - 26):
-                self.path = self.generatePath(self.direction, True)
+                self.path = self.generate_path(self.direction, True)
                 return
         elif self.direction == self.DIR_LEFT:
             if new_position[0] < 0:
-                self.path = self.generatePath(self.direction, True)
+                self.path = self.generate_path(self.direction, True)
                 return
 
         new_rect = pygame.Rect(new_position, [26, 26])
 
         # collisions with tiles
         if new_rect.collidelist(self.level.obstacle_rects) != -1:
-            self.path = self.generatePath(self.direction, True)
+            self.path = self.generate_path(self.direction, True)
             return
 
         # collisions with other enemies
         for enemy in enemies:
             if enemy != self and new_rect.colliderect(enemy.rect):
-                self.turnAround()
-                self.path = self.generatePath(self.direction)
+                self.turn_around()
+                self.path = self.generate_path(self.direction)
                 return
 
         # collisions with players
         for player in players:
             if new_rect.colliderect(player.rect):
-                self.turnAround()
-                self.path = self.generatePath(self.direction)
+                self.turn_around()
+                self.path = self.generate_path(self.direction)
                 return
 
         # collisions with bonuses
@@ -1025,7 +1021,7 @@ class Enemy(Tank):
         if self.state == self.STATE_ALIVE and not self.paused:
             self.move()
 
-    def generatePath(self, direction=None, fix_direction=False):
+    def generate_path(self, direction=None, fix_direction=False):
         """ If direction is specified, try continue that way, otherwise choose at random
         """
 
@@ -1143,6 +1139,8 @@ class Player(Tank):
 
         # total score
         self.score = 0
+
+        self.can_add_live = True
 
         # store how many bonuses in this stage this player has collected
         self.trophies = {
@@ -1268,11 +1266,7 @@ class Game:
 
         self.clock = pygame.time.Clock()
 
-        # load sprites (funky version)
-        # sprites = pygame.transform.scale2x(pygame.image.load("images/sprites.gif"))
-        # load sprites (pixely version)
         sprites = pygame.transform.scale(pygame.image.load("images/sprites.gif"), [192, 224])
-        # screen.set_colorkey((0,138,104))
 
         pygame.display.set_icon(sprites.subsurface(0, 0, 13 * 2, 13 * 2))
 
@@ -1318,7 +1312,7 @@ class Game:
         del enemies[:]
         del bonuses[:]
 
-    def triggerBonus(self, bonus, player):
+    def trigger_bonus(self, bonus, player):
         """ Execute bonus powers """
 
         global enemies, labels, play_sounds, sounds
@@ -1333,10 +1327,10 @@ class Game:
             for enemy in enemies:
                 enemy.explode()
         elif bonus.bonus == bonus.BONUS_HELMET:
-            self.shieldPlayer(player, True, 10000)
+            self.shield_player(player, True, 10000)
         elif bonus.bonus == bonus.BONUS_SHOVEL:
-            self.level.buildFortress(self.level.TILE_STEEL)
-            gtimer.add(10000, lambda: self.level.buildFortress(self.level.TILE_BRICK), 1)
+            self.level.build_fortress(self.level.TILE_STEEL)
+            gtimer.add(10000, lambda: self.level.build_fortress(self.level.TILE_BRICK), 1)
         elif bonus.bonus == bonus.BONUS_STAR:
             player.superpowers += 1
             if player.superpowers == 2:
@@ -1344,13 +1338,19 @@ class Game:
         elif bonus.bonus == bonus.BONUS_TANK:
             player.lives += 1
         elif bonus.bonus == bonus.BONUS_TIMER:
-            self.toggleEnemyFreeze(True)
-            gtimer.add(10000, lambda: self.toggleEnemyFreeze(False), 1)
+            self.toggle_enemy_freeze(True)
+            gtimer.add(10000, lambda: self.toggle_enemy_freeze(False), 1)
         bonuses.remove(bonus)
 
         labels.append(Label(bonus.rect.topleft, "500", 500))
 
-    def shieldPlayer(self, player, shield=True, duration=None):
+    def add_live_for_scores(self, scores):
+        for player in players:
+            if player.score >= scores and player.can_add_live:
+                player.lives += 1
+                player.can_add_live = False
+
+    def shield_player(self, player, shield=True, duration=None):
         """ Add/remove shield
         player: player (not enemy)
         shield: true/false
@@ -1358,14 +1358,14 @@ class Game:
         """
         player.shielded = shield
         if shield:
-            player.timer_uuid_shield = gtimer.add(100, lambda: player.toggleShieldImage())
+            player.timer_uuid_shield = gtimer.add(100, lambda: player.toggle_shield_image())
         else:
             gtimer.destroy(player.timer_uuid_shield)
 
         if shield and duration != None:
-            gtimer.add(duration, lambda: self.shieldPlayer(player, False), 1)
+            gtimer.add(duration, lambda: self.shield_player(player, False), 1)
 
-    def spawnEnemy(self):
+    def spawn_enemy(self):
         """ Spawn new enemy if needed
         Only add enemy if:
             - there are at least one in queue
@@ -1383,7 +1383,7 @@ class Game:
 
         enemies.append(enemy)
 
-    def respawnPlayer(self, player, clear_scores=False):
+    def respawn_player(self, player, clear_scores=False):
         """ Respawn player """
         player.reset()
 
@@ -1392,9 +1392,9 @@ class Game:
                 "bonus": 0, "enemy0": 0, "enemy1": 0, "enemy2": 0, "enemy3": 0
             }
 
-        self.shieldPlayer(player, True, 4000)
+        self.shield_player(player, True, 4000)
 
-    def gameOver(self):
+    def game_over_func(self):
         """ End game and return to menu """
 
         global play_sounds, sounds
@@ -1408,9 +1408,9 @@ class Game:
         self.game_over_y = 416 + 40
 
         self.game_over = True
-        gtimer.add(3000, lambda: self.showScores(), 1)
+        gtimer.add(3000, lambda: self.show_scores(), 1)
 
-    def gameOverScreen(self):
+    def game_over_screen(self):
         """ Show game over screen """
 
         global screen
@@ -1420,8 +1420,8 @@ class Game:
 
         screen.fill([0, 0, 0])
 
-        self.writeInBricks("game", [125, 140])
-        self.writeInBricks("over", [125, 220])
+        self.write_in_bricks("game", [125, 140])
+        self.write_in_bricks("over", [125, 220])
         pygame.display.flip()
 
         while 1:
@@ -1431,10 +1431,10 @@ class Game:
                     quit()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
-                        self.showMenu()
+                        self.show_menu()
                         return
 
-    def showMenu(self):
+    def show_menu(self):
         """ Show game menu
         Redraw screen only when up or down key is pressed. When enter is pressed,
         exit from this screen and start the game with selected number of players
@@ -1451,7 +1451,7 @@ class Game:
         # set current stage to 0
         self.stage = 0
 
-        self.animateIntroScreen()
+        self.animate_intro_screen()
 
         main_loop = True
         while main_loop:
@@ -1466,18 +1466,18 @@ class Game:
                     elif event.key == pygame.K_UP:
                         if self.nr_of_players == 2:
                             self.nr_of_players = 1
-                            self.drawIntroScreen()
+                            self.draw_intro_screen()
                     elif event.key == pygame.K_DOWN:
                         if self.nr_of_players == 1:
                             self.nr_of_players = 2
-                            self.drawIntroScreen()
+                            self.draw_intro_screen()
                     elif event.key == pygame.K_RETURN:
                         main_loop = False
 
         del players[:]
-        self.nextLevel()
+        self.next_level()
 
-    def reloadPlayers(self):
+    def reload_players(self):
         """ Init players
         If players already exist, just reset them
         """
@@ -1506,9 +1506,9 @@ class Game:
 
         for player in players:
             player.level = self.level
-            self.respawnPlayer(player, True)
+            self.respawn_player(player, True)
 
-    def showScores(self):
+    def show_scores(self):
         """ Show level scores """
 
         global screen, sprites, players, play_sounds, sounds
@@ -1523,15 +1523,15 @@ class Game:
             for sound in sounds:
                 sounds[sound].stop()
 
-        hiscore = self.loadHiscore()
+        hiscore = self.load_hiscore()
 
         # update hiscore if needed
         if players[0].score > hiscore:
             hiscore = players[0].score
-            self.saveHiscore(hiscore)
+            self.save_hiscore(hiscore)
         if self.nr_of_players == 2 and players[1].score > hiscore:
             hiscore = players[1].score
-            self.saveHiscore(hiscore)
+            self.save_hiscore(hiscore)
 
         img_tanks = [
             sprites.subsurface(32 * 2, 0, 13 * 2, 15 * 2),
@@ -1645,9 +1645,9 @@ class Game:
         self.clock.tick(1)
 
         if self.game_over:
-            self.gameOverScreen()
+            self.game_over_screen()
         else:
-            self.nextLevel()
+            self.next_level()
 
     def draw(self):
         global screen, castle, players, enemies, bullets, bonuses
@@ -1681,11 +1681,11 @@ class Game:
                 self.game_over_y -= 4
             screen.blit(self.im_game_over, [176, self.game_over_y])  # 176=(416-64)/2
 
-        self.drawSidebar()
+        self.draw_sidebar()
 
         pygame.display.flip()
 
-    def drawSidebar(self):
+    def draw_sidebar(self):
 
         global screen, players, enemies
 
@@ -1721,7 +1721,7 @@ class Game:
             screen.blit(self.flag_image, [x + 17, y + 280])
             screen.blit(self.font.render(str(self.stage), False, text_color), [x + 17, y + 312])
 
-    def drawIntroScreen(self, put_on_surface=True):
+    def draw_intro_screen(self, put_on_surface=True):
         """ Draw intro (menu) screen
         @param boolean put_on_surface If True, flip display after drawing
         @return None
@@ -1732,7 +1732,7 @@ class Game:
         screen.fill([0, 0, 0])
 
         if pygame.font.get_init():
-            hiscore = self.loadHiscore()
+            hiscore = self.load_hiscore()
 
             screen.blit(self.font.render("HI- " + str(hiscore), True, pygame.Color('white')), [170, 35])
 
@@ -1747,13 +1747,13 @@ class Game:
         elif self.nr_of_players == 2:
             screen.blit(self.player_image, [125, 270])
 
-        self.writeInBricks("battle", [65, 80])
-        self.writeInBricks("city", [129, 160])
+        self.write_in_bricks("battle", [65, 80])
+        self.write_in_bricks("city", [129, 160])
 
         if put_on_surface:
             pygame.display.flip()
 
-    def animateIntroScreen(self):
+    def animate_intro_screen(self):
         """ Slide intro (menu) screen from bottom to top
         If Enter key is pressed, finish animation immediately
         @return None
@@ -1761,7 +1761,7 @@ class Game:
 
         global screen
 
-        self.drawIntroScreen(False)
+        self.draw_intro_screen(False)
         screen_cp = screen.copy()
 
         screen.fill([0, 0, 0])
@@ -1790,7 +1790,7 @@ class Game:
         """
         return [l[i:i + n] for i in range(0, len(l), n)]
 
-    def writeInBricks(self, text, pos):
+    def write_in_bricks(self, text, pos):
         """ Write specified text in "brick font"
         Only those letters are available that form words "Battle City" and "Game Over"
         Both lowercase and uppercase are valid input, but output is always uppercase
@@ -1854,7 +1854,7 @@ class Game:
             screen.blit(surf_letter, [abs_x, abs_y])
             abs_x += letter_w + 16
 
-    def toggleEnemyFreeze(self, freeze=True):
+    def toggle_enemy_freeze(self, freeze=True):
         """ Freeze/defreeze all enemies """
 
         global enemies
@@ -1863,25 +1863,25 @@ class Game:
             enemy.paused = freeze
         self.timefreeze = freeze
 
-    def loadHiscore(self):
+    def load_hiscore(self):
         """ Load hiscore
         Really primitive version =] If for some reason hiscore cannot be loaded, return 20000
         @return int
         """
         filename = ".hiscore"
-        if (not os.path.isfile(filename)):
+        if not os.path.isfile(filename):
             return 20000
 
         f = open(filename, "r")
         hiscore = int(f.read())
 
-        if hiscore > 19999 and hiscore < 1000000:
+        if 19999 < hiscore < 1000000:
             return hiscore
         else:
             print("cheater =[")
             return 20000
 
-    def saveHiscore(self, hiscore):
+    def save_hiscore(self, hiscore):
         """ Save hiscore
         @return boolean
         """
@@ -1894,7 +1894,7 @@ class Game:
         f.close()
         return True
 
-    def finishLevel(self):
+    def finish_level(self):
         """ Finish current level
         Show earned scores and advance to the next stage
         """
@@ -1905,11 +1905,11 @@ class Game:
             sounds["bg"].stop()
 
         self.active = False
-        gtimer.add(3000, lambda: self.showScores(), 1)
+        gtimer.add(3000, lambda: self.show_scores(), 1)
 
         print("Stage " + str(self.stage) + " completed")
 
-    def nextLevel(self):
+    def next_level(self):
         """ Start next level """
 
         global castle, players, bullets, bonuses, play_sounds, sounds
@@ -1948,9 +1948,9 @@ class Game:
             sounds["start"].play()
             gtimer.add(4330, lambda: sounds["bg"].play(-1), 1)
 
-        self.reloadPlayers()
+        self.reload_players()
 
-        gtimer.add(3000, lambda: self.spawnEnemy())
+        gtimer.add(3000, lambda: self.spawn_enemy())
 
         # if True, start "game over" animation
         self.game_over = False
@@ -2021,13 +2021,13 @@ class Game:
 
             for player in players:
                 if player.state == player.STATE_ALIVE and not self.game_over and self.active:
-                    if player.pressed[0] == True:
+                    if player.pressed[0]:
                         player.move(self.DIR_UP)
-                    elif player.pressed[1] == True:
+                    elif player.pressed[1]:
                         player.move(self.DIR_RIGHT)
-                    elif player.pressed[2] == True:
+                    elif player.pressed[2]:
                         player.move(self.DIR_DOWN)
-                    elif player.pressed[3] == True:
+                    elif player.pressed[3]:
                         player.move(self.DIR_LEFT)
                 player.update(time_passed)
 
@@ -2035,23 +2035,24 @@ class Game:
                 if enemy.state == enemy.STATE_DEAD and not self.game_over and self.active:
                     enemies.remove(enemy)
                     if len(self.level.enemies_left) == 0 and len(enemies) == 0:
-                        self.finishLevel()
+                        self.finish_level()
                 else:
                     enemy.update(time_passed)
 
             if not self.game_over and self.active:
                 for player in players:
                     if player.state == player.STATE_ALIVE:
-                        if player.bonus != None and player.side == player.SIDE_PLAYER:
-                            self.triggerBonus(bonus, player)
+                        self.add_live_for_scores(20000)
+                        if player.bonus is not None and player.side == player.SIDE_PLAYER:
+                            self.trigger_bonus(bonus, player)
                             player.bonus = None
                     elif player.state == player.STATE_DEAD:
                         self.superpowers = 0
                         player.lives -= 1
                         if player.lives > 0:
-                            self.respawnPlayer(player)
+                            self.respawn_player(player)
                         else:
-                            self.gameOver()
+                            self.game_over()
 
             for bullet in bullets:
                 if bullet.state == bullet.STATE_REMOVED:
@@ -2069,7 +2070,7 @@ class Game:
 
             if not self.game_over:
                 if not castle.active:
-                    self.gameOver()
+                    self.game_over_func()
 
             gtimer.update(time_passed)
 
@@ -2092,4 +2093,4 @@ if __name__ == "__main__":
 
     game = Game()
     castle = Castle()
-    game.showMenu()
+    game.show_menu()
